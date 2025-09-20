@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Missing Family Member - DisasterX</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <style>
+        body.dark-mode {
+            background-color: #121212;
+            color: #f8f9fa;
+        }
+
+        .dark-mode .card {
+            background-color: #1e1e1e;
+            color: #fff;
+        }
+
+        .dark-mode .navbar {
+            background-color: #1f1f1f !important;
+        }
+
+        .dark-mode .navbar .navbar-brand {
+            color: #fff;
+        }
+        .card {
+        max-width: 95%;   /* Increase card width */
+        margin: 0 auto;   /* Center the card */
+        }
+    </style>
+    <!-- Small patch to keep global popup overlay sizing (you already had this) -->
+  <style>.popup-overlay{top:0;left:0;width:100%;height:100%;}</style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="your-logo.png" alt="">
+    </div>
+    <a href="#"><i class="bi bi-map"></i> Live HeatMap / Field</a>
+    <a href="#"><i class="bi bi-cloud-sun"></i> Weather Forecast</a>
+    <a href="incident.html"><i class="bi bi-graph-up"></i> Incident Reporting</a>
+    <a href="#"><i class="bi bi-box"></i> Resource Visualization</a>
+    <a href="#"><i class="bi bi-people"></i> Family Identification Tool</a>
+    <a href="simulation.html"><i class="bi bi-play-circle"></i> Simulation</a>
+    <a href="#"><i class="bi bi-chat-dots"></i> Community</a>
+    <a href="#"><i class="bi bi-phone"></i> USER MOBILE</a>
+    <a href="earthquake.html"><i class="bi bi-bricks"></i> Earthquake Prediction</a>
+    <a href="flood.html" class="active"><i class="bi bi-tsunami"></i> Flood Prediction</a>
+    <a href="cyclone_page.html"><i class="bi bi-wind"></i> Cyclone Prediction</a>
+  </div>
+
+
+   
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light custom-navbar py-3">
+        <div class="container-fluid">
+
+            <!-- Left: Sidebar Toggle + Dashboard -->
+            <div class="d-flex align-items-center">
+                <button class="btn toggle-btn me-2" id="toggleSidebar" aria-label="Toggle sidebar"
+                    aria-controls="sidebar" aria-expanded="false">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+                <h1 class=" fw-bold mb-0 dashboard-title">DASHBOARD</h1>
+            </div>
+
+            <!-- Center: DisasterX Branding -->
+            <div class="mx-auto text-center">
+                <span class="brand-name">Disaster<span class="brand-highlight">X</span></span>
+            </div>
+
+            <!-- Right: Live Monitoring + Buttons -->
+            <div class="d-flex align-items-center gap-3 ms-auto">
+            <small class="text-muted live-text">Live &middot; Monitoring</small>
+            <a href="login.html" class="btn custom-btn-outline" id="loginBtn">Log In</a>
+            <a href="signup.html" class="btn custom-btn" id="signupBtn">Sign Up</a>
+            <button class="btn btn-danger d-none" id="logoutBtn">Logout</button>
+            </div>
+
+        </div>
+    </nav>
+    
+
+    
+   <main class="container-fluid my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+      <div class="card shadow p-4">
+        <h3 class="mb-4">REPORT A MISSING FAMILY MEMBER</h3>
+      <!-- Reporter Information -->
+      <div class="card shadow p-4 mb-4">
+        <h4 class="mb-3 text-primary">Reporter Information</h4>
+        <form id="reportForm">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Your Name</label>
+              <input type="text" class="form-control" id="reporterName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Your Phone Number</label>
+              <input type="text" class="form-control" id="reporterPhone" placeholder="+91 9876543210" required>
+            </div>
+          </div>
+      </div>
+
+      <!-- Lost Person Information -->
+      <div class="card shadow p-4 mb-4">
+        <h4 class="mb-3 text-danger">Lost Person Information</h4>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="nameInput" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Age</label>
+            <input type="number" class="form-control" id="ageInput" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Gender</label>
+            <select class="form-select" id="genderInput" required>
+              <option value="">Select...</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Last Seen Location</label>
+            <input type="text" class="form-control" id="locationInput" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="statusInput" required>
+              <option value="Missing">Missing</option>
+              <option value="Found">Found</option>
+              <option value="Injured">Injured</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Blood Group</label>
+            <select class="form-select" id="bloodGroupInput">
+              <option value="">Not Known</option>
+              <option>A+</option>
+              <option>A-</option>
+              <option>B+</option>
+              <option>B-</option>
+              <option>O+</option>
+              <option>O-</option>
+              <option>AB+</option>
+              <option>AB-</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Lost Person Phone (Optional)</label>
+            <input type="text" class="form-control" id="lostPhone" placeholder="+91 9876543210">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Upload Recent Photo (Optional)</label>
+            <input type="file" class="form-control" id="photoInput" accept="image/*">
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Section -->
+      <div class="text-center">
+        <button type="submit" class="btn btn-danger btn-lg px-5">Submit Report</button>
+      </div>
+
+      </form>
+    </div>
+  </div> 
+</main>
+
+<div class="card shadow p-4 mb-4" id="pastReportsCard" style="display:none;">
+  <h4 class="mb-3 text-info">Previous Reports for This Person</h4>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Reporter</th>
+          <th>Phone</th>
+          <th>Missing Person</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Last Seen</th>
+          <th>Status</th>
+          <th>Blood Group</th>
+          <th>Lost Person Phone</th>
+          <th>Photo</th>
+          <th>Date Reported</th>
+        </tr>
+      </thead>
+      <tbody id="pastReportsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Chatbot Floating Button + Chat Window -->
+    <div class="chatbot-container" id="chatbot">
+        <!-- Floating Icon -->
+        <button class="chatbot-btn" id="chatbotToggle" aria-label="Open chatbot">
+            <i class="bi bi-robot"></i>
+
+        </button>
+
+        <!-- Chat Window -->
+        <div class="chatbot-window" id="chatWindow">
+            <div class="chatbot-header">
+                <span>DisasterX Assistant</span>
+                <button class="chatbot-close-btn" id="chatClose">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="chatbot-body" id="chatBody">
+                <div class="bot-message">👋 Hi! I’m here to help with disaster info. Ask me anything.</div>
+            </div>
+            <div class="chatbot-footer">
+                <input type="text" id="chatInput" placeholder="Type your message..." />
+                <button id="chatSend"><i class="bi bi-send"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (your provided markup) -->
+  <footer class="footer py-5 mt-auto">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <h5>About DisasterX</h5>
+          <p>DisasterX is a real-time disaster management dashboard that empowers communities, responders, and authorities with live updates, analytics, and resource tracking during emergencies.</p>
+        </div>
+        <div class="col-md-2">
+          <h5>Quick Links</h5>
+          <ul class="list-unstyled">
+            <li><a href="#">Live HeatMap</a></li>
+            <li><a href="#">Weather Forecast</a></li>
+            <li><a href="#">Resource Tools</a></li>
+            <li><a href="#">Simulation</a></li>
+            <li><a href="#">Community</a></li>
+            <li><a href="#">Earthquake Prediction</a></li>
+            <li><a href="#">Flood Prediction</a></li>
+            <li><a href="#">Cyclone Prediction</a></li>
+          </ul>
+        </div>
+        <div class="col-md-3">
+          <h5>Contact Us</h5>
+          <p>Email: support@disasterx.org</p>
+          <p>Phone: +1 (800) 123-4567</p>
+          <p>Location: Innovation Hub, India</p>
+        </div>
+        <div class="col-md-3">
+          <h5>Follow Us</h5>
+          <div class="social-icons d-flex gap-3">
+            <a href="#"><i class="bi bi-facebook"></i></a>
+            <a href="#"><i class="bi bi-twitter-x"></i></a>
+            <a href="#"><i class="bi bi-instagram"></i></a>
+            <a href="#"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="text-center mt-4">
+        <small class="text-muted">&copy; 2025 DisasterX. All rights reserved.</small>
+      </div>
+    </div>
+  </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+   
+   <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    serverTimestamp,
+    query,
+    where,
+    getDocs,
+    orderBy
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDyL2xbz6shEdgd93w9LLu-xjiEilDONIA",
+    authDomain: "family-identification-tool.firebaseapp.com",
+    projectId: "family-identification-tool",
+    storageBucket: "family-identification-tool.appspot.com",
+    messagingSenderId: "482977845070",
+    appId: "1:482977845070:web:5f5c66b3327a662cabd81f",
+    measurementId: "G-0K62CJ74JV"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  const form = document.getElementById("reportForm");
+
+  // --- Submit Report ---
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const reporterName = document.getElementById("reporterName").value.trim();
+    const reporterPhone = document.getElementById("reporterPhone").value.trim();
+    const name = document.getElementById("nameInput").value.trim();
+    const age = document.getElementById("ageInput").value.trim();
+    const gender = document.getElementById("genderInput").value;
+    const location = document.getElementById("locationInput").value.trim();
+    const status = document.getElementById("statusInput").value;
+    const bloodGroup = document.getElementById("bloodGroupInput").value;
+    const lostPhone = document.getElementById("lostPhone").value.trim();
+    const photoFile = document.getElementById("photoInput").files[0];
+
+    let photoUrl = "";
+    if (photoFile) {
+      const photoRef = ref(storage, "familyReports/" + Date.now() + "_" + photoFile.name);
+      await uploadBytes(photoRef, photoFile);
+      photoUrl = await getDownloadURL(photoRef);
+    }
+
+    await addDoc(collection(db, "familyReports"), {
+      reporterName,
+      reporterPhone: reporterPhone || null,
+      name,
+      age,
+      gender,
+      lastSeen: location,
+      status,
+      bloodGroup: bloodGroup || "Not Provided",
+      lostPhone: lostPhone || null,
+      photoUrl,
+      createdAt: serverTimestamp()
+    });
+
+    alert("✅ Report submitted successfully!");
+    form.reset();
+
+    // reload past reports immediately
+    showPastReports(name, age, gender);
+  });
+
+  // --- Sidebar Toggle ---
+  (function () {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const toggleBtn = document.getElementById('toggleSidebar');
+    function closeSidebar() {
+      sidebar.classList.remove('active');
+      overlay.classList.remove('active');
+    }
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('active');
+    });
+    overlay.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
+  })();
+
+  // --- Theme Toggle ---
+  const themeToggle = document.getElementById("themeToggle");
+  themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+    if (document.body.classList.contains("dark-mode")) {
+      themeToggle.textContent = "☀️ Light Mode";
+    } else {
+      themeToggle.textContent = "🌙 Dark Mode";
+    }
+  });
+
+  // --- Past Reports ---
+  const pastReportsCard = document.getElementById("pastReportsCard");
+  const pastReportsBody = document.getElementById("pastReportsBody");
+
+  async function showPastReports(name, age, gender) {
+    if (!name || !age || !gender) {
+      pastReportsCard.style.display = "none";
+      return;
+    }
+
+    const reportsRef = collection(db, "familyReports");
+    const q = query(
+      reportsRef,
+      where("name", "==", name),
+      where("age", "==", parseInt(age)),
+      where("gender", "==", gender),
+      orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+    pastReportsBody.innerHTML = "";
+
+    if (snapshot.empty) {
+      pastReportsBody.innerHTML = "<tr><td colspan='11' class='text-center'>No previous reports found</td></tr>";
+    } else {
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        let date = "N/A";
+        if (data.createdAt && data.createdAt.seconds) {
+          date = new Date(data.createdAt.seconds * 1000).toLocaleString();
+        }
+
+        pastReportsBody.innerHTML += `
+          <tr>
+            <td>${data.reporterName || "-"}</td>
+            <td>${data.reporterPhone || "-"}</td>
+            <td>${data.name || "-"}</td>
+            <td>${data.age || "-"}</td>
+            <td>${data.gender || "-"}</td>
+            <td>${data.lastSeen || "-"}</td>
+            <td>${data.status || "-"}</td>
+            <td>${data.bloodGroup || "Not Provided"}</td>
+            <td>${data.lostPhone || "-"}</td>
+            <td>${data.photoUrl ? `<img src="${data.photoUrl}" width="60" height="60">` : "No Photo"}</td>
+            <td>${date}</td>
+          </tr>
+        `;
+      });
+    }
+
+    pastReportsCard.style.display = "block";
+  }
+
+  // --- Auto Load Past Reports When Input Changes ---
+  const nameInput = document.getElementById("nameInput");
+  const ageInput = document.getElementById("ageInput");
+  const genderInput = document.getElementById("genderInput");
+
+  [nameInput, ageInput, genderInput].forEach(el => {
+    el.addEventListener("input", () => {
+      showPastReports(
+        nameInput.value.trim(),
+        ageInput.value.trim(),
+        genderInput.value
+      );
+    });
+  });
+</script>
+</body>
+</html>
