@@ -8,11 +8,20 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from waitress import serve
 
+
 # -----------------------------
 # Earthquake Predictor
 # -----------------------------
 class OriginalEarthquakePredictor:
-    def __init__(self, csv_file=None, min_magnitude=3.0, lat_center=0.0, lon_center=0.0, radius_km=500, time_window_days=30):
+    def __init__(
+        self,
+        csv_file=None,
+        min_magnitude=3.0,
+        lat_center=0.0,
+        lon_center=0.0,
+        radius_km=500,
+        time_window_days=30,
+    ):
         self.min_magnitude = min_magnitude
         self.lat_center = lat_center
         self.lon_center = lon_center
@@ -29,7 +38,12 @@ class OriginalEarthquakePredictor:
             {"name": "Chile", "lat": -35.6751, "lon": -71.5430, "multiplier": 1.4},
             {"name": "Indonesia", "lat": -0.7893, "lon": 113.9213, "multiplier": 2.1},
             {"name": "Alaska", "lat": 64.2008, "lon": -149.4937, "multiplier": 1.3},
-            {"name": "California", "lat": 36.7783, "lon": -119.4179, "multiplier": 1.25},
+            {
+                "name": "California",
+                "lat": 36.7783,
+                "lon": -119.4179,
+                "multiplier": 1.25,
+            },
             {"name": "Nepal", "lat": 28.3949, "lon": 84.1240, "multiplier": 4.1},
             {"name": "Turkey", "lat": 38.9637, "lon": 35.2433, "multiplier": 1.3},
             {"name": "Mexico", "lat": 23.6345, "lon": -102.5528, "multiplier": 1.25},
@@ -45,7 +59,7 @@ class OriginalEarthquakePredictor:
         lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
         dlat = lat2 - lat1
         dlon = lon2 - lon1
-        a = np.sin(dlat / 2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2)**2
+        a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
         c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
         return R * c
 
@@ -53,7 +67,9 @@ class OriginalEarthquakePredictor:
     def adjust_prediction(self, base_percent):
         matched_zone = None
         for zone in self.earthquake_zones:
-            dist = self.haversine(self.lat_center, self.lon_center, zone["lat"], zone["lon"])
+            dist = self.haversine(
+                self.lat_center, self.lon_center, zone["lat"], zone["lon"]
+            )
             if dist <= self.radius_km:
                 matched_zone = zone
                 break
@@ -74,14 +90,18 @@ class OriginalEarthquakePredictor:
         return adjusted, matched_zone["name"] if matched_zone else None
 
     def load_and_fit_data(self):
-        df = pd.DataFrame(columns=['time', 'mag', 'latitude', 'longitude', 'datetime'])
+        df = pd.DataFrame(columns=["time", "mag", "latitude", "longitude", "datetime"])
 
         # Load from CSV if available
         if self.csv_file and os.path.exists(self.csv_file):
             try:
-                df_csv = pd.read_csv(self.csv_file, usecols=['time', 'mag', 'latitude', 'longitude'])
-                df_csv['datetime'] = pd.to_datetime(df_csv['time'], utc=True).dt.tz_localize(None)
-                df_csv = df_csv[df_csv['mag'] >= self.min_magnitude].dropna()
+                df_csv = pd.read_csv(
+                    self.csv_file, usecols=["time", "mag", "latitude", "longitude"]
+                )
+                df_csv["datetime"] = pd.to_datetime(
+                    df_csv["time"], utc=True
+                ).dt.tz_localize(None)
+                df_csv = df_csv[df_csv["mag"] >= self.min_magnitude].dropna()
                 df = pd.concat([df, df_csv], ignore_index=True)
                 print(f"Loaded {len(df_csv)} events from CSV.")
             except (FileNotFoundError, KeyError):
@@ -97,36 +117,41 @@ class OriginalEarthquakePredictor:
                 minmagnitude=self.min_magnitude,
                 latitude=self.lat_center,
                 longitude=self.lon_center,
-                maxradius=self.radius_km / 111.32
+                maxradius=self.radius_km / 111.32,
             )
             data = [
-                {"time": event.origins[0].time.datetime.replace(tzinfo=None),
-                 "mag": event.magnitudes[0].mag,
-                 "latitude": event.origins[0].latitude,
-                 "longitude": event.origins[0].longitude}
-                for event in catalog if event.magnitudes and event.origins
+                {
+                    "time": event.origins[0].time.datetime.replace(tzinfo=None),
+                    "mag": event.magnitudes[0].mag,
+                    "latitude": event.origins[0].latitude,
+                    "longitude": event.origins[0].longitude,
+                }
+                for event in catalog
+                if event.magnitudes and event.origins
             ]
             df_rt = pd.DataFrame(data)
-            df_rt['datetime'] = pd.to_datetime(df_rt['time'])
+            df_rt["datetime"] = pd.to_datetime(df_rt["time"])
             df = pd.concat([df, df_rt], ignore_index=True)
             print(f"Loaded {len(df_rt)} events from IRIS real-time data.")
         except Exception as e:
             print(f"Error fetching IRIS data: {e}")
 
-        df = df.drop_duplicates(subset=['time', 'latitude', 'longitude', 'mag'])
+        df = df.drop_duplicates(subset=["time", "latitude", "longitude", "mag"])
         if not df.empty:
-            df['distance'] = self.haversine(self.lat_center, self.lon_center, df['latitude'], df['longitude'])
-            df = df[df['distance'] <= self.radius_km]
+            df["distance"] = self.haversine(
+                self.lat_center, self.lon_center, df["latitude"], df["longitude"]
+            )
+            df = df[df["distance"] <= self.radius_km]
 
         if df.empty:
             print("No events found within the specified region.")
             self.a_value, self.b_value, self.event_rate = 0, 0, 0
             return
 
-        time_span_years = (df['datetime'].max() - df['datetime'].min()).days / 365.25
+        time_span_years = (df["datetime"].max() - df["datetime"].min()).days / 365.25
         if time_span_years == 0:
             time_span_years = self.time_window_days / 365.25
-        magnitudes = df['mag'].values
+        magnitudes = df["mag"].values
 
         mag_bins = np.arange(self.min_magnitude, magnitudes.max() + 0.1, 0.1)
         hist, bin_edges = np.histogram(magnitudes, bins=mag_bins, density=False)
@@ -162,23 +187,25 @@ class OriginalEarthquakePredictor:
         adjusted, zone = self.adjust_prediction(base_percent)
         return adjusted, zone
 
+
 # -----------------------------
 # Flask App
 # -----------------------------
 app = Flask(__name__)
 CORS(app)
 
+
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.get_json()
-    lat = data.get('lat')
-    lon = data.get('lon')
-    radius = data.get('radius', 500)
-    magnitude = data.get('magnitude', 5.5)
-    time_window = data.get('timeWindow', 30)
+    lat = data.get("lat")
+    lon = data.get("lon")
+    radius = data.get("radius", 500)
+    magnitude = data.get("magnitude", 5.5)
+    time_window = data.get("timeWindow", 30)
 
     if lat is None or lon is None:
-        return jsonify({'error': 'Missing lat or lon'}), 400
+        return jsonify({"error": "Missing lat or lon"}), 400
 
     try:
         predictor = OriginalEarthquakePredictor(
@@ -187,22 +214,26 @@ def predict():
             lat_center=lat,
             lon_center=lon,
             radius_km=radius,
-            time_window_days=time_window
+            time_window_days=time_window,
         )
 
         probability, zone = predictor.predict_probability(magnitude, time_window)
-        return jsonify({
-            'success': True,
-            'probability': round(probability, 2),
-            'highRiskZone': zone if zone else "None"
-        })
+        return jsonify(
+            {
+                "success": True,
+                "probability": round(probability, 2),
+                "highRiskZone": zone if zone else "None",
+            }
+        )
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
+
 
 # -----------------------------
 # Run with Waitress
 # -----------------------------
 if __name__ == "__main__":
     print("🚀 Starting Advanced Earthquake Prediction API with Waitress...")
-    serve(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    serve(app, host="0.0.0.0", port=port)
